@@ -65,11 +65,13 @@ public final class HoneyColorPaths {
      * @param root         the palette named in the source, or {@code null} when not stated
      * @param alpha        alpha passed to {@code resolveColor(path, alpha)}, or {@code null}
      * @param replaceRange the range holding just the path text, for rewriting on color change
+     * @param allowsCssColor whether a plain CSS color is also valid here, not only a theme path
      */
     public record Reference(@NotNull String path,
                             @Nullable String root,
                             @Nullable Double alpha,
-                            @NotNull TextRange replaceRange) {
+                            @NotNull TextRange replaceRange,
+                            boolean allowsCssColor) {
     }
 
     /**
@@ -139,7 +141,7 @@ public final class HoneyColorPaths {
         }
         TextRange range = new TextRange(firstName.getTextRange().getStartOffset(),
                 reference.getTextRange().getEndOffset());
-        return new Reference(path, root, null, range);
+        return new Reference(path, root, null, range, false);
     }
 
     private static @Nullable Reference fromLiteral(PsiElement leaf, JSLiteralExpression literal) {
@@ -147,16 +149,18 @@ public final class HoneyColorPaths {
             return null;
         }
         String value = literal.getStringValue();
-        if (value == null || value.indexOf('.') < 0) {
+        if (value == null || value.isEmpty()) {
             return null;
         }
 
         String root = null;
         Double alpha = null;
+        boolean colorFunctionArgument = false;
         if (literal.getParent() instanceof JSArgumentList arguments
                 && arguments.getParent() instanceof JSCallExpression call) {
             String function = calleeName(call);
             if (function != null && COLOR_FUNCTIONS.contains(function)) {
+                colorFunctionArgument = true;
                 if ("resolveColor".equals(function)) {
                     root = "colors";
                 }
@@ -166,7 +170,11 @@ public final class HoneyColorPaths {
                 }
             }
         }
-        return new Reference(value, root, alpha, unquotedRange(literal));
+        // Outside a color function a bare word is just a string, so require a dotted path there.
+        if (!colorFunctionArgument && value.indexOf('.') < 0) {
+            return null;
+        }
+        return new Reference(value, root, alpha, unquotedRange(literal), colorFunctionArgument);
     }
 
     /**
@@ -225,10 +233,11 @@ public final class HoneyColorPaths {
             return null;
         }
         String value = attributeValue.getValue();
-        if (value == null || value.indexOf('.') < 0) {
+        if (value == null || value.isEmpty()) {
             return null;
         }
-        return new Reference(value, null, null, range);
+        // honey-layout passes a non-path value straight through, so `white` is valid here too.
+        return new Reference(value, null, null, range, true);
     }
 
     /** True when the attribute is one honey-layout resolves a color path for. */

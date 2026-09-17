@@ -153,6 +153,13 @@ so a path on any other prop reaches CSS verbatim. Matching on "name contains col
 bless `$caretColor` and `$floodColor`. Like the at-rule names, this list is library API and is
 mirrored here; the theme-derived data stays discovered.
 
+**Literal CSS colors are valid in some positions, not all.** `Reference.allowsCssColor` marks the
+places honey accepts a raw color as well as a path: a honey-layout color prop, and a color function
+argument (`resolveColor` splits on `.` and returns the input unchanged when there is none). Plain
+string literals elsewhere still require a dotted path, otherwise every `'red'` in the project would
+get a swatch. Where the value is literal, `setColorTo` writes a hex instead of snapping to the
+nearest token - the author chose not to use a token.
+
 **Reference anchoring.** `HoneyColorPaths` accepts a dotted chain only when it is anchored on
 `colors` / `palette` / `theme`, or when it is a bare two-segment `group.name`. Without
 that rule, ordinary property access would be decorated.

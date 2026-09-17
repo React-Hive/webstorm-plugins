@@ -30,6 +30,10 @@ Clicking the gutter swatch opens the color picker. Because only theme tokens are
 positions, picking a color **rewrites the path to the nearest token in the palette** rather than
 writing a raw hex value.
 
+A plain CSS color works in these positions too — `$backgroundColor="white"` or
+`resolveColor('#318BFA')` — because honey passes a non-path value straight through. Those get a
+swatch as well, and picking a color there writes a hex value instead of snapping to a token.
+
 Only the props honey-layout resolves a path for are recognised — `$color`, `$backgroundColor`,
 `$borderColor` plus the four per-side variants, `$outlineColor`, `$textDecorationColor`, `$fill` and
 `$stroke` (honey-style's `CSS_COLOR_PROPERTIES`). Anything else, such as `$caretColor`, passes the

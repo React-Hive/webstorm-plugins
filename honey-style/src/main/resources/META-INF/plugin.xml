@@ -39,6 +39,12 @@
 
 
     <change-notes><![CDATA[
+        <h4>0.3.1</h4>
+        <ul>
+            <li>Plain CSS colors get a swatch where honey resolves one -
+                <code>$backgroundColor="white"</code> and <code>resolveColor('#318BFA')</code>.
+                Picking a color there writes a hex value rather than snapping to a theme token.</li>
+        </ul>
         <h4>0.3.0</h4>
         <ul>
             <li>Honey-layout color props are supported: <code>$backgroundColor="accent.mediumGold"</code>
@@ -49,6 +55,7 @@
                 four per-side variants, <code>$outlineColor</code>,
                 <code>$textDecorationColor</code>, <code>$fill</code>, <code>$stroke</code>. Other
                 props pass the string through unchanged, so a path there would emit invalid CSS.</li>
+
         </ul>
         <h4>0.2.0</h4>
         <ul>

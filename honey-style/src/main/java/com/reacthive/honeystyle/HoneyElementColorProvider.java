@@ -32,14 +32,12 @@ public final class HoneyElementColorProvider implements ElementColorProvider {
         if (reference == null) {
             return null;
         }
-        HoneyColorEntry entry = HoneyThemeService.getInstance(element.getProject())
-                .getPalette()
-                .find(reference.path(), reference.root());
-        if (entry == null) {
+        Color color = resolve(element.getProject(), reference);
+        if (color == null) {
             return null;
         }
         Double alpha = reference.alpha();
-        return alpha == null ? entry.color() : CssColorParser.withAlpha(entry.color(), alpha);
+        return alpha == null ? color : CssColorParser.withAlpha(color, alpha);
     }
 
     @Override
@@ -51,14 +49,21 @@ public final class HoneyElementColorProvider implements ElementColorProvider {
         Project project = element.getProject();
         HoneyPalette palette = HoneyThemeService.getInstance(project).getPalette();
         HoneyColorEntry current = palette.find(reference.path(), reference.root());
-        if (current == null) {
-            return;
-        }
 
         Color target = reference.alpha() == null ? color : new Color(color.getRGB(), false);
-        HoneyColorEntry nearest = palette.nearest(target, reference.root());
-        if (nearest == null || nearest.path().equals(current.path())) {
-            return;
+        String replacement;
+        if (current == null) {
+            // A plain CSS color such as `white`; keep it literal instead of snapping to a token.
+            if (!reference.allowsCssColor() || CssColorParser.parse(reference.path()) == null) {
+                return;
+            }
+            replacement = CssColorParser.toHex(target);
+        } else {
+            HoneyColorEntry nearest = palette.nearest(target, reference.root());
+            if (nearest == null || nearest.path().equals(current.path())) {
+                return;
+            }
+            replacement = nearest.path();
         }
 
         PsiFile file = element.getContainingFile();
@@ -70,7 +75,6 @@ public final class HoneyElementColorProvider implements ElementColorProvider {
             return;
         }
         TextRange range = reference.replaceRange();
-        String replacement = nearest.path();
         WriteCommandAction.runWriteCommandAction(
                 project,
                 "Change Honey Style Color",
@@ -80,6 +84,20 @@ public final class HoneyElementColorProvider implements ElementColorProvider {
                     PsiDocumentManager.getInstance(project).commitDocument(document);
                 },
                 file);
+    }
+
+    /**
+     * A theme path where one is expected, otherwise a literal CSS color in the positions where
+     * honey resolves one - a honey-layout color prop, or a color function argument.
+     */
+    private static @Nullable Color resolve(Project project, HoneyColorPaths.Reference reference) {
+        HoneyColorEntry entry = HoneyThemeService.getInstance(project)
+                .getPalette()
+                .find(reference.path(), reference.root());
+        if (entry != null) {
+            return entry.color();
+        }
+        return reference.allowsCssColor() ? CssColorParser.parse(reference.path()) : null;
     }
 
     /**
