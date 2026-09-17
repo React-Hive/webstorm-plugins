@@ -1,0 +1,74 @@
+<idea-plugin>
+    <id>com.reacthive.honeystyle</id>
+    <name>Honey Style</name>
+    <vendor url="https://github.com/React-Hive">React Hive</vendor>
+
+    <description><![CDATA[
+        Shows a color swatch next to <a href="https://github.com/React-Hive/honey-style">honey-style</a>
+        theme color paths in JavaScript and TypeScript.
+
+        <p>The palette is read from the project's own theme sources, so nothing is hardcoded:
+        any <code>colors</code>, <code>colors2</code> or <code>palette</code> object literal is
+        flattened into dotted paths.</p>
+
+        <p>Recognised forms:</p>
+        <ul>
+            <li><code>colors.primary.royalBlue</code> and <code>theme.colors.neutral.fogGrey</code></li>
+            <li><code>resolveColor('primary.royalBlue', 0.25)</code> - alpha included in the swatch</li>
+            <li><code>getColor('primary.main')</code> and <code>getContrastColor(...)</code></li>
+            <li>any string literal that is a known path, e.g. <code>$color="secondary.mediumGreen"</code></li>
+            <li>bare paths inside styled/css template literals, e.g. <code>border-color: secondary.mediumGreen;</code></li>
+        </ul>
+
+        <p>Cmd/Ctrl+Click on a path jumps to the declaration that holds the value, e.g.
+        <code>royalBlue: '#318BFA'</code> in the theme file.</p>
+
+        <p>Completion of color paths shows the actual color as the item icon, in
+        <code>resolveColor('...')</code> arguments and after a palette group such as
+        <code>colors.primary.</code>.</p>
+
+        <p>Honey at-rules are completed inside styled/css template literals -
+        <code>@honey-media</code>, <code>@honey-stack</code>, <code>@honey-inline</code>,
+        <code>@honey-center</code>, <code>@honey-if</code>, <code>@honey-ellipsis</code> and
+        <code>@honey-absolute-fill</code> - along with their parameters. Breakpoint names for
+        <code>@honey-media</code> are read from the project's <code>theme.breakpoints</code>.</p>
+
+        <p>The gutter color picker snaps to the nearest token in the palette instead of writing a raw
+        hex value, since only theme tokens are valid in these positions.</p>
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+    <depends>JavaScript</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <projectService serviceImplementation="com.reacthive.honeystyle.HoneyStyleSettings"/>
+        <projectService serviceImplementation="com.reacthive.honeystyle.HoneyThemeService"/>
+
+        <colorProvider implementation="com.reacthive.honeystyle.HoneyElementColorProvider"/>
+
+        <codeInsight.lineMarkerProvider
+                language="JavaScript"
+                implementationClass="com.reacthive.honeystyle.HoneyTemplateColorLineMarkerProvider"/>
+
+        <gotoDeclarationHandler
+                implementation="com.reacthive.honeystyle.HoneyColorGotoDeclarationHandler"/>
+
+        <completion.contributor
+                language="JavaScript"
+                order="first"
+                implementationClass="com.reacthive.honeystyle.HoneyColorCompletionContributor"/>
+
+        <completion.contributor
+                language="any"
+                implementationClass="com.reacthive.honeystyle.HoneyAtRuleCompletionContributor"/>
+
+        <documentationProvider
+                implementation="com.reacthive.honeystyle.HoneyAtRuleDocumentationProvider"/>
+
+        <projectConfigurable
+                parentId="tools"
+                id="com.reacthive.honeystyle.settings"
+                displayName="Honey Style"
+                instance="com.reacthive.honeystyle.HoneyStyleConfigurable"/>
+    </extensions>
+</idea-plugin>
