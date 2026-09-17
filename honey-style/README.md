@@ -12,7 +12,7 @@ const Tab = styled(HoneyBox)`
 ```
 
 The palette is read from **your project's own theme sources** — nothing is hardcoded. Any
-`colors`, `colors2` or `palette` object literal is flattened into dotted paths, so the plugin
+`colors` or `palette` object literal is flattened into dotted paths, so the plugin
 tracks the palette as it changes.
 
 ## What gets a swatch
@@ -20,7 +20,7 @@ tracks the palette as it changes.
 | Form | Example |
 | --- | --- |
 | Destructured palette | `colors.primary.royalBlue` |
-| Theme access | `theme.colors.neutral.fogGrey`, `theme.mg.colors2.primary.main` |
+| Theme access | `theme.colors.neutral.fogGrey` |
 | `resolveColor` | `resolveColor('primary.royalBlue', 0.25)` — alpha is applied to the swatch |
 | `getColor` / `getContrastColor` | `getColor('primary.main')` |
 | Any known path as a string | `$color="secondary.mediumGreen"` |

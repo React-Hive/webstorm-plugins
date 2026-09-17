@@ -8,7 +8,7 @@
         theme color paths in JavaScript and TypeScript.
 
         <p>The palette is read from the project's own theme sources, so nothing is hardcoded:
-        any <code>colors</code>, <code>colors2</code> or <code>palette</code> object literal is
+        any <code>colors</code> or <code>palette</code> object literal is
         flattened into dotted paths.</p>
 
         <p>Recognised forms:</p>
@@ -36,6 +36,29 @@
         <p>The gutter color picker snaps to the nearest token in the palette instead of writing a raw
         hex value, since only theme tokens are valid in these positions.</p>
     ]]></description>
+
+
+    <change-notes><![CDATA[
+        <h4>0.2.0</h4>
+        <ul>
+            <li>The deprecated <code>colors2</code> object is no longer indexed - it collided with
+                <code>colors</code> on paths such as <code>secondary.light</code>, where the two hold
+                different values.</li>
+            <li>A path inside a template literal is no longer claimed by both the color provider and
+                the line marker provider.</li>
+            <li>Template color markers are mergeable, matching the platform's own color markers.</li>
+        </ul>
+        <h4>0.1.0</h4>
+        <ul>
+            <li>Gutter color swatches for honey-style theme color paths, with a picker that snaps to
+                the nearest palette token.</li>
+            <li>Cmd/Ctrl+Click on a color path jumps to the declaration holding the value.</li>
+            <li>Color path completion, with the color shown as the item icon.</li>
+            <li><code>@honey-*</code> at-rule completion inside styled/css template literals, with
+                parameters and quick documentation. <code>@honey-media</code> breakpoints are read
+                from the project's <code>theme.breakpoints</code>.</li>
+        </ul>
+    ]]></change-notes>
 
     <depends>com.intellij.modules.platform</depends>
     <depends>JavaScript</depends>

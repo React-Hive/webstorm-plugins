@@ -9,7 +9,7 @@ import java.awt.Color;
  * A single resolved theme color, e.g. {@code secondary.mediumGreen -> #2FAC2F}.
  *
  * @param path       dotted path relative to the palette root, without the {@code colors} prefix
- * @param rootName   the palette object the value was declared in ({@code colors}, {@code colors2}, ...)
+ * @param rootName   the palette object the value was declared in ({@code colors}, {@code palette}, ...)
  * @param color      resolved color
  * @param rawValue   the literal as written in the theme file
  * @param sourceName presentable name of the file the value came from

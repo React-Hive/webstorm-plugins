@@ -11,11 +11,9 @@ import java.util.Map;
 /**
  * An immutable snapshot of every color path found in the project's honey theme files.
  *
- * <p>A project can declare more than one palette (portalui has the current {@code theme.colors}
- * plus the deprecated {@code colors} / {@code colors2} objects), and those palettes reuse path
- * names like {@code secondary.light} for different values. Entries are therefore indexed both by
- * bare path and by {@code <root>.<path>}, so a reference written as {@code colors2.secondary.light}
- * resolves against the palette it actually names.
+ * <p>A project can declare more than one palette, and separate palettes may reuse path names like
+ * {@code secondary.light} for different values. Entries are therefore indexed both by bare path and
+ * by {@code <root>.<path>}, so a reference resolves against the palette it actually names.
  */
 public final class HoneyPalette {
 
@@ -59,8 +57,8 @@ public final class HoneyPalette {
     }
 
     /**
-     * @param root the palette named in the reference ({@code colors2} in
-     *             {@code theme.mg.colors2.primary.main}), or {@code null} when unknown
+     * @param root the palette named in the reference ({@code colors} in
+     *             {@code theme.colors.primary.royalBlue}), or {@code null} when unknown
      */
     public @Nullable HoneyColorEntry find(@Nullable String path, @Nullable String root) {
         if (path == null || path.isEmpty()) {

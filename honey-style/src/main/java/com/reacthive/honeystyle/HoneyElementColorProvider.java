@@ -2,6 +2,7 @@ package com.reacthive.honeystyle;
 
 import com.intellij.lang.javascript.psi.JSLiteralExpression;
 import com.intellij.lang.javascript.psi.JSReferenceExpression;
+import com.intellij.lang.javascript.psi.ecma6.JSStringTemplateExpression;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.ElementColorProvider;
@@ -92,7 +93,9 @@ public final class HoneyElementColorProvider implements ElementColorProvider {
             if (reference.getQualifier() == null) {
                 return null;
             }
-        } else if (!(parent instanceof JSLiteralExpression)) {
+        } else if (!(parent instanceof JSLiteralExpression) || parent instanceof JSStringTemplateExpression) {
+            // A template expression is a JSLiteralExpression; its text is the line marker
+            // provider's job, so claiming it here would draw a second swatch.
             return null;
         }
         if (!HoneyStyleSettings.getInstance(element.getProject()).isEnabled()) {

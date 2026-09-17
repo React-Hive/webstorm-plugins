@@ -34,13 +34,14 @@ import java.util.Set;
 /**
  * Builds a {@link HoneyPalette} by reading the project's own theme sources.
  *
- * <p>Nothing is hardcoded: any object literal called {@code colors}, {@code colors2} or
- * {@code palette} - either a variable or a property of a theme object - is flattened into
- * dotted paths, so the plugin follows the project as its palette evolves.
+ * <p>Nothing is hardcoded: any object literal called {@code colors} or {@code palette} - either a
+ * variable or a property of a theme object - is flattened into dotted paths, so the plugin follows
+ * the project as its palette evolves. The deprecated {@code colors2} object is deliberately not
+ * indexed: it reuses path names like {@code secondary.light} for different values.
  */
 final class HoneyThemeIndexer {
 
-    private static final Set<String> PALETTE_ROOTS = Set.of("colors", "colors2", "colours", "palette");
+    private static final Set<String> PALETTE_ROOTS = Set.of("colors", "colours", "palette");
     private static final String BREAKPOINTS_ROOT = "breakpoints";
     private static final List<String> EXTENSIONS = List.of("ts", "tsx", "js", "mjs");
     private static final int MAX_FILES = 60;

@@ -81,9 +81,10 @@ interpolated path does not get two swatches; the code tolerates both relative an
 because that contract is not guaranteed.
 
 **Two palettes can declare the same path.** portalui has the current `theme.colors`
-(`primary.royalBlue`) plus deprecated `colors` / `colors2` objects that reuse names like
+(`primary.royalBlue`) plus a deprecated `colors` object that reuses names like
 `secondary.light` for different values. `HoneyPalette` therefore indexes entries both by bare path
-and by `<root>.<path>`, so `colors2.secondary.light` resolves against the palette it names.
+and by `<root>.<path>`. `colors2` is deliberately excluded from indexing - it collides with the
+deprecated `colors` object on paths like `secondary.light` while holding different values.
 `HoneyThemeIndexer.score` ranks candidate files so mocks, docs and build output lose to real theme
 sources, with a `honey` bonus breaking ties toward the current palette.
 
@@ -144,7 +145,7 @@ direction means `up`. `HoneyAtRulesTest` pins this so the documentation cannot d
 `create-media-at-rule-transformer.ts`.
 
 **Reference anchoring.** `HoneyColorPaths` accepts a dotted chain only when it is anchored on
-`colors` / `colors2` / `palette` / `theme`, or when it is a bare two-segment `group.name`. Without
+`colors` / `palette` / `theme`, or when it is a bare two-segment `group.name`. Without
 that rule, ordinary property access would be decorated.
 
 ## Conventions

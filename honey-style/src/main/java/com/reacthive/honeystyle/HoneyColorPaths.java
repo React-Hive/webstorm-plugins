@@ -5,6 +5,7 @@ import com.intellij.lang.javascript.psi.JSCallExpression;
 import com.intellij.lang.javascript.psi.JSExpression;
 import com.intellij.lang.javascript.psi.JSLiteralExpression;
 import com.intellij.lang.javascript.psi.JSReferenceExpression;
+import com.intellij.lang.javascript.psi.ecma6.JSStringTemplateExpression;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiElement;
 import org.jetbrains.annotations.NotNull;
@@ -21,7 +22,6 @@ import java.util.Set;
  * <pre>
  *   colors.primary.royalBlue                 // destructured `theme: { colors }`
  *   theme.colors.neutral.fogGrey
- *   theme.mg.colors2.primary.main
  *   resolveColor('primary.royalBlue', 0.25)  // alpha is applied to the swatch
  *   getColor('primary.main')
  *   $color="secondary.mediumGreen"           // any string literal that is a known path
@@ -30,10 +30,10 @@ import java.util.Set;
 public final class HoneyColorPaths {
 
     /** Object names that introduce a palette; the segments after them form the path. */
-    private static final Set<String> PALETTE_ROOTS = Set.of("colors", "colors2", "colours", "palette");
+    private static final Set<String> PALETTE_ROOTS = Set.of("colors", "colours", "palette");
 
     /** Names that may precede a path, including wrappers that are not palettes themselves. */
-    private static final Set<String> ANCHORS = Set.of("colors", "colors2", "colours", "palette", "theme");
+    private static final Set<String> ANCHORS = Set.of("colors", "colours", "palette", "theme");
 
     private static final Set<String> COLOR_FUNCTIONS = Set.of("resolveColor", "getColor", "getContrastColor");
 
@@ -60,6 +60,9 @@ public final class HoneyColorPaths {
         PsiElement parent = leaf.getParent();
         if (parent instanceof JSReferenceExpression reference) {
             return fromReference(leaf, reference);
+        }
+        if (parent instanceof JSStringTemplateExpression) {
+            return null;
         }
         if (parent instanceof JSLiteralExpression literal) {
             return fromLiteral(leaf, literal);

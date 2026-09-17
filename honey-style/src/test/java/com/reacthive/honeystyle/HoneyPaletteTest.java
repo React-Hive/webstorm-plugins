@@ -20,7 +20,7 @@ public class HoneyPaletteTest {
         return new HoneyPalette(List.of(
                 entry("secondary.mediumGreen", "colors", MEDIUM_GREEN),
                 entry("primary.royalBlue", "colors", ROYAL_BLUE),
-                entry("secondary.light", "colors2", LIGHT_GREEN_HONEY),
+                entry("secondary.light", "palette", LIGHT_GREEN_HONEY),
                 entry("secondary.light", "colors", LIGHT_GREEN_COLORS2)
         ), List.of("theme.ts"));
     }
@@ -43,7 +43,7 @@ public class HoneyPaletteTest {
         assertEquals(LIGHT_GREEN_HONEY, palette.find("secondary.light").color());
         // ...but an explicit root picks the palette that was actually referenced.
         assertEquals(LIGHT_GREEN_COLORS2, palette.find("secondary.light", "colors").color());
-        assertEquals(LIGHT_GREEN_HONEY, palette.find("secondary.light", "colors2").color());
+        assertEquals(LIGHT_GREEN_HONEY, palette.find("secondary.light", "palette").color());
     }
 
     @Test
