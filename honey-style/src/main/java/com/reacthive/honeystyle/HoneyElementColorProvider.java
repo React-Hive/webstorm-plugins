@@ -10,6 +10,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiElement;
+import com.intellij.psi.xml.XmlAttributeValue;
 import com.intellij.psi.PsiFile;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -93,9 +94,11 @@ public final class HoneyElementColorProvider implements ElementColorProvider {
             if (reference.getQualifier() == null) {
                 return null;
             }
-        } else if (!(parent instanceof JSLiteralExpression) || parent instanceof JSStringTemplateExpression) {
+        } else if (parent instanceof JSStringTemplateExpression) {
             // A template expression is a JSLiteralExpression; its text is the line marker
             // provider's job, so claiming it here would draw a second swatch.
+            return null;
+        } else if (!(parent instanceof JSLiteralExpression) && !(parent instanceof XmlAttributeValue)) {
             return null;
         }
         if (!HoneyStyleSettings.getInstance(element.getProject()).isEnabled()) {

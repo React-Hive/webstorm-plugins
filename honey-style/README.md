@@ -23,12 +23,17 @@ tracks the palette as it changes.
 | Theme access | `theme.colors.neutral.fogGrey` |
 | `resolveColor` | `resolveColor('primary.royalBlue', 0.25)` — alpha is applied to the swatch |
 | `getColor` / `getContrastColor` | `getColor('primary.main')` |
-| Any known path as a string | `$color="secondary.mediumGreen"` |
+| honey-layout color props | `$backgroundColor="accent.mediumGold"`, `$fill="accent.darkTeal"` |
 | Bare path in a styled/css template | `border-color: secondary.mediumGreen;` |
 
 Clicking the gutter swatch opens the color picker. Because only theme tokens are valid in these
 positions, picking a color **rewrites the path to the nearest token in the palette** rather than
 writing a raw hex value.
+
+Only the props honey-layout resolves a path for are recognised — `$color`, `$backgroundColor`,
+`$borderColor` plus the four per-side variants, `$outlineColor`, `$textDecorationColor`, `$fill` and
+`$stroke` (honey-style's `CSS_COLOR_PROPERTIES`). Anything else, such as `$caretColor`, passes the
+string straight through to CSS, so a path there would not resolve and gets no swatch.
 
 ## Navigation
 

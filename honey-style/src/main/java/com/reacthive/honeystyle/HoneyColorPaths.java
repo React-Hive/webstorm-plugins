@@ -8,6 +8,9 @@ import com.intellij.lang.javascript.psi.JSReferenceExpression;
 import com.intellij.lang.javascript.psi.ecma6.JSStringTemplateExpression;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiElement;
+import com.intellij.psi.util.PsiTreeUtil;
+import com.intellij.psi.xml.XmlAttribute;
+import com.intellij.psi.xml.XmlAttributeValue;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -24,7 +27,7 @@ import java.util.Set;
  *   theme.colors.neutral.fogGrey
  *   resolveColor('primary.royalBlue', 0.25)  // alpha is applied to the swatch
  *   getColor('primary.main')
- *   $color="secondary.mediumGreen"           // any string literal that is a known path
+ *   $color="secondary.mediumGreen"           // honey-layout props take a path directly
  * </pre>
  */
 public final class HoneyColorPaths {
@@ -36,6 +39,23 @@ public final class HoneyColorPaths {
     private static final Set<String> ANCHORS = Set.of("colors", "colours", "palette", "theme");
 
     private static final Set<String> COLOR_FUNCTIONS = Set.of("resolveColor", "getColor", "getContrastColor");
+
+    /**
+     * Props honey-layout resolves a color path for - honey-style's {@code CSS_COLOR_PROPERTIES}.
+     * Any other prop passes the string through untouched, so a path there would emit invalid CSS.
+     */
+    private static final Set<String> COLOR_PROPS = Set.of(
+            "color",
+            "backgroundColor",
+            "borderColor",
+            "borderTopColor",
+            "borderRightColor",
+            "borderBottomColor",
+            "borderLeftColor",
+            "outlineColor",
+            "textDecorationColor",
+            "fill",
+            "stroke");
 
     private HoneyColorPaths() {
     }
@@ -66,6 +86,9 @@ public final class HoneyColorPaths {
         }
         if (parent instanceof JSLiteralExpression literal) {
             return fromLiteral(leaf, literal);
+        }
+        if (parent instanceof XmlAttributeValue attributeValue) {
+            return fromAttributeValue(leaf, attributeValue);
         }
         return null;
     }
@@ -189,12 +212,41 @@ public final class HoneyColorPaths {
         return function != null && COLOR_FUNCTIONS.contains(function);
     }
 
+    /**
+     * A JSX prop such as {@code $backgroundColor="accent.mediumGold"}. Honey-layout props take a
+     * color path directly, and the value is XML PSI rather than a JS literal.
+     */
+    private static @Nullable Reference fromAttributeValue(PsiElement leaf, XmlAttributeValue attributeValue) {
+        if (!isColorProp(attributeValue)) {
+            return null;
+        }
+        TextRange range = unquotedRange(attributeValue);
+        if (leaf.getTextRange().getStartOffset() != range.getStartOffset()) {
+            return null;
+        }
+        String value = attributeValue.getValue();
+        if (value == null || value.indexOf('.') < 0) {
+            return null;
+        }
+        return new Reference(value, null, null, range);
+    }
+
+    /** True when the attribute is one honey-layout resolves a color path for. */
+    public static boolean isColorProp(@NotNull XmlAttributeValue attributeValue) {
+        XmlAttribute attribute = PsiTreeUtil.getParentOfType(attributeValue, XmlAttribute.class, true);
+        if (attribute == null) {
+            return false;
+        }
+        String name = attribute.getName();
+        return COLOR_PROPS.contains(name.startsWith("$") ? name.substring(1) : name);
+    }
+
     private static @Nullable String calleeName(JSCallExpression call) {
         JSExpression callee = call.getMethodExpression();
         return callee instanceof JSReferenceExpression reference ? reference.getReferenceName() : null;
     }
 
-    private static TextRange unquotedRange(JSLiteralExpression literal) {
+    private static TextRange unquotedRange(PsiElement literal) {
         TextRange full = literal.getTextRange();
         String text = literal.getText();
         if (text.length() >= 2 && isQuote(text.charAt(0)) && text.charAt(0) == text.charAt(text.length() - 1)) {

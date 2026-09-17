@@ -16,7 +16,7 @@
             <li><code>colors.primary.royalBlue</code> and <code>theme.colors.neutral.fogGrey</code></li>
             <li><code>resolveColor('primary.royalBlue', 0.25)</code> - alpha included in the swatch</li>
             <li><code>getColor('primary.main')</code> and <code>getContrastColor(...)</code></li>
-            <li>any string literal that is a known path, e.g. <code>$color="secondary.mediumGreen"</code></li>
+            <li>honey-layout color props, e.g. <code>$backgroundColor="accent.mediumGold"</code></li>
             <li>bare paths inside styled/css template literals, e.g. <code>border-color: secondary.mediumGreen;</code></li>
         </ul>
 
@@ -39,6 +39,17 @@
 
 
     <change-notes><![CDATA[
+        <h4>0.3.0</h4>
+        <ul>
+            <li>Honey-layout color props are supported: <code>$backgroundColor="accent.mediumGold"</code>
+                gets a swatch, Cmd/Ctrl+Click and completion. JSX props parse to XML rather than JS
+                PSI, so they were previously skipped.</li>
+            <li>Only the props honey-layout actually resolves a path for are handled -
+                <code>$color</code>, <code>$backgroundColor</code>, <code>$borderColor</code> and the
+                four per-side variants, <code>$outlineColor</code>,
+                <code>$textDecorationColor</code>, <code>$fill</code>, <code>$stroke</code>. Other
+                props pass the string through unchanged, so a path there would emit invalid CSS.</li>
+        </ul>
         <h4>0.2.0</h4>
         <ul>
             <li>The deprecated <code>colors2</code> object is no longer indexed - it collided with

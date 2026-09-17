@@ -144,6 +144,15 @@ both directions - there is no `- 0.02px` adjustment, unlike Bootstrap-style syst
 direction means `up`. `HoneyAtRulesTest` pins this so the documentation cannot drift from
 `create-media-at-rule-transformer.ts`.
 
+**JSX props are XML PSI, not JS literals.** `$backgroundColor="accent.mediumGold"` parses to an
+`XmlAttributeValue`, so the `JSLiteralExpression` branches never saw it. `HoneyColorPaths` handles
+it as a third form, keyed on the leaf starting at the unquoted range so one prop yields one swatch.
+Both the swatch and completion are gated on `COLOR_PROPS`, mirroring honey-style's
+`CSS_COLOR_PROPERTIES`: `honey-layout/src/helpers/helpers.ts` calls `resolveColor` only for those,
+so a path on any other prop reaches CSS verbatim. Matching on "name contains color" would wrongly
+bless `$caretColor` and `$floodColor`. Like the at-rule names, this list is library API and is
+mirrored here; the theme-derived data stays discovered.
+
 **Reference anchoring.** `HoneyColorPaths` accepts a dotted chain only when it is anchored on
 `colors` / `palette` / `theme`, or when it is a bare two-segment `group.name`. Without
 that rule, ordinary property access would be decorated.

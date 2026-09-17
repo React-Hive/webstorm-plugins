@@ -13,6 +13,7 @@ import com.intellij.lang.javascript.psi.JSLiteralExpression;
 import com.intellij.lang.javascript.psi.JSReferenceExpression;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiElement;
+import com.intellij.psi.xml.XmlAttributeValue;
 import com.intellij.util.ui.ColorIcon;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -28,7 +29,8 @@ import java.util.Set;
  *   <li>a string argument of {@code resolveColor} / {@code getColor} / {@code getContrastColor},
  *       where whole paths like {@code primary.royalBlue} are offered;</li>
  *   <li>member access after a palette group, e.g. {@code colors.primary.}, where the names inside
- *       that group are offered.</li>
+ *       that group are offered;</li>
+ *   <li>a JSX color prop, e.g. {@code $backgroundColor="accent.mediumGold"}.</li>
  * </ul>
  *
  * <p>A project that augments {@code HoneyColors} with concrete key unions already gets these names
@@ -83,6 +85,9 @@ public final class HoneyColorCompletionContributor extends CompletionContributor
             return HoneyColorPaths.isColorFunctionArgument(literal)
                     ? new HoneyColorPaths.Prefix("", "colors")
                     : null;
+        }
+        if (parent instanceof XmlAttributeValue attributeValue) {
+            return HoneyColorPaths.isColorProp(attributeValue) ? new HoneyColorPaths.Prefix("", null) : null;
         }
         if (parent instanceof JSReferenceExpression reference) {
             JSExpression qualifier = reference.getQualifier();
