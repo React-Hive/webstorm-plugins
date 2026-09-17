@@ -26,45 +26,29 @@ import java.util.Set;
  *   colors.primary.royalBlue                 // destructured `theme: { colors }`
  *   theme.colors.neutral.fogGrey
  *   resolveColor('primary.royalBlue', 0.25)  // alpha is applied to the swatch
- *   getColor('primary.main')
  *   $color="secondary.mediumGreen"           // honey-layout props take a path directly
  * </pre>
  */
 public final class HoneyColorPaths {
 
-    /** Object names that introduce a palette; the segments after them form the path. */
+    /**
+     * Object names that introduce a palette; the segments after them form the path.
+     */
     private static final Set<String> PALETTE_ROOTS = Set.of("colors", "colours", "palette");
 
-    /** Names that may precede a path, including wrappers that are not palettes themselves. */
-    private static final Set<String> ANCHORS = Set.of("colors", "colours", "palette", "theme");
-
-    private static final Set<String> COLOR_FUNCTIONS = Set.of("resolveColor", "getColor", "getContrastColor");
-
     /**
-     * Props honey-layout resolves a color path for - honey-style's {@code CSS_COLOR_PROPERTIES}.
-     * Any other prop passes the string through untouched, so a path there would emit invalid CSS.
+     * Names that may precede a path, including wrappers that are not palettes themselves.
      */
-    private static final Set<String> COLOR_PROPS = Set.of(
-            "color",
-            "backgroundColor",
-            "borderColor",
-            "borderTopColor",
-            "borderRightColor",
-            "borderBottomColor",
-            "borderLeftColor",
-            "outlineColor",
-            "textDecorationColor",
-            "fill",
-            "stroke");
+    private static final Set<String> ANCHORS = Set.of("colors", "colours", "palette", "theme");
 
     private HoneyColorPaths() {
     }
 
     /**
-     * @param path         dotted path to look up, e.g. {@code primary.royalBlue}
-     * @param root         the palette named in the source, or {@code null} when not stated
-     * @param alpha        alpha passed to {@code resolveColor(path, alpha)}, or {@code null}
-     * @param replaceRange the range holding just the path text, for rewriting on color change
+     * @param path           dotted path to look up, e.g. {@code primary.royalBlue}
+     * @param root           the palette named in the source, or {@code null} when not stated
+     * @param alpha          alpha passed to {@code resolveColor(path, alpha)}, or {@code null}
+     * @param replaceRange   the range holding just the path text, for rewriting on color change
      * @param allowsCssColor whether a plain CSS color is also valid here, not only a theme path
      */
     public record Reference(@NotNull String path,
@@ -159,7 +143,9 @@ public final class HoneyColorPaths {
         if (literal.getParent() instanceof JSArgumentList arguments
                 && arguments.getParent() instanceof JSCallExpression call) {
             String function = calleeName(call);
-            if (function != null && COLOR_FUNCTIONS.contains(function)) {
+            Set<String> colorFunctions =
+                    HoneyStyleSettings.getInstance(literal.getProject()).getColorFunctionNames();
+            if (function != null && colorFunctions.contains(function)) {
                 colorFunctionArgument = true;
                 if ("resolveColor".equals(function)) {
                     root = "colors";
@@ -183,7 +169,7 @@ public final class HoneyColorPaths {
      * @param path the group path already typed, e.g. {@code primary} in {@code colors.primary.},
      *             or empty when whole paths are expected
      */
-    public record Prefix(@NotNull String path, @Nullable String root) {
+    public record Prefix(@NotNull String path, @Nullable String root, boolean allowsCssColor) {
     }
 
     /**
@@ -198,26 +184,30 @@ public final class HoneyColorPaths {
             if (name == null) {
                 return null;
             }
-            segments.add(0, name);
+            segments.addFirst(name);
             current = link.getQualifier();
         }
         for (int i = segments.size() - 1; i >= 0; i--) {
             if (ANCHORS.contains(segments.get(i))) {
                 String root = PALETTE_ROOTS.contains(segments.get(i)) ? segments.get(i) : null;
-                return new Prefix(String.join(".", segments.subList(i + 1, segments.size())), root);
+                // Member access: only a key of the group is valid, never a raw CSS color.
+                return new Prefix(String.join(".", segments.subList(i + 1, segments.size())), root, false);
             }
         }
         return null;
     }
 
-    /** True when the caret sits in a string argument of a honey color function. */
+    /**
+     * True when the caret sits in a string argument of a honey color function.
+     */
     public static boolean isColorFunctionArgument(@NotNull JSLiteralExpression literal) {
         if (!(literal.getParent() instanceof JSArgumentList arguments)
                 || !(arguments.getParent() instanceof JSCallExpression call)) {
             return false;
         }
         String function = calleeName(call);
-        return function != null && COLOR_FUNCTIONS.contains(function);
+        return function != null
+                && HoneyStyleSettings.getInstance(literal.getProject()).getColorFunctionNames().contains(function);
     }
 
     /**
@@ -233,21 +223,24 @@ public final class HoneyColorPaths {
             return null;
         }
         String value = attributeValue.getValue();
-        if (value == null || value.isEmpty()) {
+        if (value.isEmpty()) {
             return null;
         }
         // honey-layout passes a non-path value straight through, so `white` is valid here too.
         return new Reference(value, null, null, range, true);
     }
 
-    /** True when the attribute is one honey-layout resolves a color path for. */
+    /**
+     * True when the attribute is one honey-layout resolves a color path for.
+     */
     public static boolean isColorProp(@NotNull XmlAttributeValue attributeValue) {
         XmlAttribute attribute = PsiTreeUtil.getParentOfType(attributeValue, XmlAttribute.class, true);
         if (attribute == null) {
             return false;
         }
-        String name = attribute.getName();
-        return COLOR_PROPS.contains(name.startsWith("$") ? name.substring(1) : name);
+        String name = HoneyStyleSettings.normalizeProp(attribute.getName());
+        return !name.isEmpty()
+                && HoneyStyleSettings.getInstance(attributeValue.getProject()).getColorPropNames().contains(name);
     }
 
     private static @Nullable String calleeName(JSCallExpression call) {

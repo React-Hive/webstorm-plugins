@@ -54,7 +54,9 @@ public final class HoneyElementColorProvider implements ElementColorProvider {
         String replacement;
         if (current == null) {
             // A plain CSS color such as `white`; keep it literal instead of snapping to a token.
-            if (!reference.allowsCssColor() || CssColorParser.parse(reference.path()) == null) {
+            if (!reference.allowsCssColor()
+                    || CssColorParser.parse(reference.path(),
+                    HoneyStyleSettings.getInstance(project).getCustomColorMap()) == null) {
                 return;
             }
             replacement = CssColorParser.toHex(target);
@@ -97,7 +99,9 @@ public final class HoneyElementColorProvider implements ElementColorProvider {
         if (entry != null) {
             return entry.color();
         }
-        return reference.allowsCssColor() ? CssColorParser.parse(reference.path()) : null;
+        return reference.allowsCssColor()
+                ? CssColorParser.parse(reference.path(), HoneyStyleSettings.getInstance(project).getCustomColorMap())
+                : null;
     }
 
     /**

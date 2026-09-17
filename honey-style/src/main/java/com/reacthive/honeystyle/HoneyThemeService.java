@@ -35,7 +35,9 @@ public final class HoneyThemeService {
         return project.getService(HoneyThemeService.class);
     }
 
-    /** Forces the palette to be rebuilt on next access. */
+    /**
+     * Forces the palette to be rebuilt on next access.
+     */
     public void reload() {
         reloadTracker.incModificationCount();
     }

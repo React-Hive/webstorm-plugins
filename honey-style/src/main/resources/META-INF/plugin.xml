@@ -15,7 +15,6 @@
         <ul>
             <li><code>colors.primary.royalBlue</code> and <code>theme.colors.neutral.fogGrey</code></li>
             <li><code>resolveColor('primary.royalBlue', 0.25)</code> - alpha included in the swatch</li>
-            <li><code>getColor('primary.main')</code> and <code>getContrastColor(...)</code></li>
             <li>honey-layout color props, e.g. <code>$backgroundColor="accent.mediumGold"</code></li>
             <li>bare paths inside styled/css template literals, e.g. <code>border-color: secondary.mediumGreen;</code></li>
         </ul>
@@ -39,6 +38,32 @@
 
 
     <change-notes><![CDATA[
+        <h4>0.4.0</h4>
+        <ul>
+            <li>Only real honey color paths are offered. A path is exactly
+                <code>group.name</code> - <code>resolveColor</code> reads two parts of the split - so
+                deeper ones such as <code>button.accent.filled.color</code> are gone, and only a
+                <code>colors</code> property of a theme object counts as a palette. The deprecated
+                standalone <code>colors</code> / <code>colors2</code> objects are reached through
+                <code>theme.mg</code> and never resolve in a honey position.</li>
+            <li>All 148 CSS named colors are recognised. The previous list held 42, so names like
+                <code>royalblue</code> and <code>rebeccapurple</code> were silently ignored.</li>
+            <li>Extra color names can be configured in Settings > Tools > Honey Style, one
+                <code>name = value</code> per line. They may also redefine a standard name.</li>
+            <li>The color props are configurable in the same place. They default to honey-layout's
+                list, and the <code>$</code> prefix is optional.</li>
+            <li>CSS color names offered by TypeScript in a color prop or
+                <code>resolveColor('...')</code> now carry a swatch and hex too, not just theme
+                paths.</li>
+            <li>Completion is grouped: theme tokens first, then CSS color names, then everything
+                else TypeScript offers - <code>inherit</code>, <code>unset</code>, and the 38
+                deprecated CSS system colors such as <code>Background</code> that csstype's
+                <code>Property.Color</code> pulls in.</li>
+            <li>Color functions are configurable too. They now default to honey-style's
+                <code>resolveColor</code> alone - <code>getColor</code> and
+                <code>getContrastColor</code> are not honey-style API. Add them back, or add your own
+                wrappers, in settings.</li>
+        </ul>
         <h4>0.3.1</h4>
         <ul>
             <li>Plain CSS colors get a swatch where honey resolves one -

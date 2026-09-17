@@ -3,6 +3,8 @@ package com.reacthive.honeystyle;
 import com.intellij.codeInsight.completion.CompletionContributor;
 import com.intellij.codeInsight.completion.CompletionParameters;
 import com.intellij.codeInsight.completion.CompletionResultSet;
+import com.intellij.codeInsight.completion.CompletionSorter;
+import com.intellij.codeInsight.completion.PrioritizedLookupElement;
 import com.intellij.codeInsight.lookup.LookupElement;
 import com.intellij.codeInsight.lookup.LookupElementBuilder;
 import com.intellij.codeInsight.lookup.LookupElementDecorator;
@@ -15,10 +17,13 @@ import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.xml.XmlAttributeValue;
 import com.intellij.util.ui.ColorIcon;
+
+import java.awt.Color;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -42,6 +47,11 @@ import java.util.Set;
  */
 public final class HoneyColorCompletionContributor extends CompletionContributor {
 
+    private static final int THEME_GROUP = 2;
+    private static final int CSS_COLOR_GROUP = 1;
+    private static final double THEME_PRIORITY = 100;
+    private static final double CSS_COLOR_PRIORITY = 50;
+
     @Override
     public void fillCompletionVariants(@NotNull CompletionParameters parameters,
                                        @NotNull CompletionResultSet result) {
@@ -60,22 +70,46 @@ public final class HoneyColorCompletionContributor extends CompletionContributor
         }
 
         Set<String> offered = new HashSet<>();
+        Map<String, String> customColors = HoneyStyleSettings.getInstance(project).getCustomColorMap();
+
+        // Every item is re-emitted through this one sorter. Passing a result straight through would
+        // keep the sorter of whichever contributor produced it - CompletionResult carries its own -
+        // and TypeScript's does not weigh priority, so the tiers would be ignored.
+        CompletionSorter sorter = CompletionSorter.defaultSorter(parameters, result.getPrefixMatcher());
+
         result.runRemainingContributors(parameters, completionResult -> {
             LookupElement element = completionResult.getLookupElement();
-            HoneyColorEntry entry = palette.find(fullPath(prefix, element.getLookupString()), prefix.root());
-            if (entry == null) {
-                result.passResult(completionResult);
-                return;
+            String lookup = element.getLookupString();
+
+            HoneyColorEntry entry = palette.find(fullPath(prefix, lookup), prefix.root());
+            Color color = entry != null ? entry.color() : null;
+            if (color == null && prefix.allowsCssColor()) {
+                // TypeScript offers the CSS color names here from `HoneyCssColor`.
+                color = CssColorParser.parse(lookup, customColors);
             }
-            offered.add(entry.path());
-            result.passResult(completionResult.withLookupElement(withSwatch(element, entry)));
+            if (entry != null) {
+                offered.add(entry.path());
+            }
+
+            LookupElement emitted = element;
+            if (color != null) {
+                boolean theme = entry != null;
+                emitted = prioritized(withSwatch(element, color),
+                        theme ? THEME_GROUP : CSS_COLOR_GROUP,
+                        theme ? THEME_PRIORITY : CSS_COLOR_PRIORITY);
+            }
+            // The result's own prefix matcher is kept, so nothing is filtered out by re-adding it.
+            result.withPrefixMatcher(completionResult.getPrefixMatcher())
+                    .withRelevanceSorter(sorter)
+                    .addElement(emitted);
         });
 
+        CompletionResultSet ours = result.withRelevanceSorter(sorter);
         for (HoneyColorEntry entry : palette.entries()) {
             if (!belongsUnder(entry.path(), prefix.path()) || offered.contains(entry.path())) {
                 continue;
             }
-            result.addElement(create(entry, prefix));
+            ours.addElement(prioritized(create(entry, prefix), THEME_GROUP, THEME_PRIORITY));
         }
     }
 
@@ -83,11 +117,13 @@ public final class HoneyColorCompletionContributor extends CompletionContributor
         PsiElement parent = position.getParent();
         if (parent instanceof JSLiteralExpression literal) {
             return HoneyColorPaths.isColorFunctionArgument(literal)
-                    ? new HoneyColorPaths.Prefix("", "colors")
+                    ? new HoneyColorPaths.Prefix("", "colors", true)
                     : null;
         }
         if (parent instanceof XmlAttributeValue attributeValue) {
-            return HoneyColorPaths.isColorProp(attributeValue) ? new HoneyColorPaths.Prefix("", null) : null;
+            return HoneyColorPaths.isColorProp(attributeValue)
+                    ? new HoneyColorPaths.Prefix("", null, true)
+                    : null;
         }
         if (parent instanceof JSReferenceExpression reference) {
             JSExpression qualifier = reference.getQualifier();
@@ -103,7 +139,9 @@ public final class HoneyColorCompletionContributor extends CompletionContributor
         return prefix.path().isEmpty() ? lookupString : prefix.path() + "." + lookupString;
     }
 
-    /** A path belongs under a prefix when it is exactly one segment deeper. */
+    /**
+     * A path belongs under a prefix when it is exactly one segment deeper.
+     */
     private static boolean belongsUnder(String path, String prefix) {
         if (prefix.isEmpty()) {
             return true;
@@ -123,15 +161,29 @@ public final class HoneyColorCompletionContributor extends CompletionContributor
                 .withTypeText(CssColorParser.toHex(entry.color()));
     }
 
-    private static LookupElement withSwatch(LookupElement element, HoneyColorEntry entry) {
+    /**
+     * Theme tokens sort above CSS color names, which in turn sort above everything else TypeScript
+     * offers here - {@code inherit}, {@code unset}, and the 38 deprecated system colors such as
+     * {@code Background} that csstype's {@code Property.Color} pulls in.
+     *
+     * <p>Grouping rather than priority alone: priority is only one weigher among several, so on an
+     * empty prefix the platform's other weighers can still float an ungrouped item to the top.
+     * Ordering within a tier is left to the platform, so prefix and camel-hump matching keep working.
+     */
+    private static LookupElement prioritized(LookupElement element, int group, double priority) {
+        return PrioritizedLookupElement.withGrouping(
+                PrioritizedLookupElement.withPriority(element, priority), group);
+    }
+
+    private static LookupElement withSwatch(LookupElement element, Color color) {
         return LookupElementDecorator.withRenderer(element,
                 new LookupElementRenderer<LookupElementDecorator<LookupElement>>() {
                     @Override
                     public void renderElement(LookupElementDecorator<LookupElement> decorator,
                                               LookupElementPresentation presentation) {
                         decorator.getDelegate().renderElement(presentation);
-                        presentation.setIcon(new ColorIcon(12, entry.color()));
-                        presentation.setTypeText(CssColorParser.toHex(entry.color()));
+                        presentation.setIcon(new ColorIcon(12, color));
+                        presentation.setTypeText(CssColorParser.toHex(color));
                     }
                 });
     }

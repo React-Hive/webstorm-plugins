@@ -93,6 +93,18 @@ picking a color rewrites the path to the nearest palette entry. It edits through
 rather than a PSI factory, and replaces only the path segment — replacing the whole reference would
 destroy the qualifier in `useHoneyStyle().colors.primary.royalBlue`.
 
+**A honey color path is exactly `group.name`.** `HoneyColorKey` is
+`` `${ColorType}.${keyof HoneyColors[ColorType]}` ``, and `resolveColor` destructures only two parts
+of `colorInput.split('.')`, so `button.accent.filled.color` resolves `theme.colors.button.accent` -
+undefined. `HoneyThemeIndexer` therefore records a color only at `COLOR_DEPTH` and recurses only at
+`GROUP_DEPTH`; anything deeper is not a path and must never be offered.
+
+**Only a `colors` property of a theme object is a palette.** portalui's deprecated palettes are
+standalone `const colors` / `const colors2` variables reached through `theme.mg`, so even their
+two-segment paths (`primary.main`) never resolve in a honey position. `paletteRootName` requires the
+parent to be a `JSProperty` for that reason. A project that assigns its palette to a variable and
+references it by shorthand would need that relaxed.
+
 **TypeScript already covers most completion.** honey-style's `HoneyColorKey` is
 `` `${ColorType}.${keyof HoneyColors[ColorType]}` ``. When a project augments `HoneyColors` with
 concrete key unions — portalui does — that collapses to a real union and the TS service completes
@@ -147,11 +159,13 @@ direction means `up`. `HoneyAtRulesTest` pins this so the documentation cannot d
 **JSX props are XML PSI, not JS literals.** `$backgroundColor="accent.mediumGold"` parses to an
 `XmlAttributeValue`, so the `JSLiteralExpression` branches never saw it. `HoneyColorPaths` handles
 it as a third form, keyed on the leaf starting at the unquoted range so one prop yields one swatch.
-Both the swatch and completion are gated on `COLOR_PROPS`, mirroring honey-style's
-`CSS_COLOR_PROPERTIES`: `honey-layout/src/helpers/helpers.ts` calls `resolveColor` only for those,
-so a path on any other prop reaches CSS verbatim. Matching on "name contains color" would wrongly
-bless `$caretColor` and `$floodColor`. Like the at-rule names, this list is library API and is
-mirrored here; the theme-derived data stays discovered.
+Both the swatch and completion are gated on the configured color props, defaulting to
+`HoneyStyleSettings.DEFAULT_COLOR_PROPS` which mirrors honey-style's `CSS_COLOR_PROPERTIES`:
+`honey-layout/src/helpers/helpers.ts` calls `resolveColor` only for those, so a path on any other
+prop reaches CSS verbatim. Matching on "name contains color" would wrongly bless `$caretColor` and
+`$floodColor`. It is configurable rather than fixed because a project can wrap honey-layout with
+props of its own; an empty list falls back to the defaults, so the field cannot be left in a state
+where nothing resolves.
 
 **Literal CSS colors are valid in some positions, not all.** `Reference.allowsCssColor` marks the
 places honey accepts a raw color as well as a path: a honey-layout color prop, and a color function
@@ -160,9 +174,21 @@ string literals elsewhere still require a dotted path, otherwise every `'red'` i
 get a swatch. Where the value is literal, `setColorTo` writes a hex instead of snapping to the
 nearest token - the author chose not to use a token.
 
+**Only `resolveColor` is honey-style API.** `getColor` and `getContrastColor` are portalui's own
+helpers on the deprecated `colors` / `colors2` theme objects, not exports of the library, so they
+are not defaults. The list lives in settings (`DEFAULT_COLOR_FUNCTIONS`) because projects wrap
+`resolveColor`, and an empty list falls back to the default.
+
 **Reference anchoring.** `HoneyColorPaths` accepts a dotted chain only when it is anchored on
 `colors` / `palette` / `theme`, or when it is a bare two-segment `group.name`. Without
 that rule, ordinary property access would be decorated.
+
+**The CSS name table is complete, and complete on purpose.** `CssColorParser` holds all 148 CSS
+named colors in a text block, generated from the `color-name` package rather than typed by hand. An
+abbreviated list fails silently on whatever it omits - the original 42-entry version did not know
+`royalblue`, which is exactly the name that made WebStorm's own swatch look like a duplicate of
+ours. Project-specific names belong in settings (`customColors`), which take precedence, so the
+standard table never needs editing.
 
 ## Conventions
 

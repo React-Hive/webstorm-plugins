@@ -10,7 +10,9 @@ import org.jetbrains.annotations.NotNull;
  */
 public record HoneyBreakpoint(@NotNull String name, @NotNull String rawValue) {
 
-    /** honey-style writes {@code `${breakpointPx}px`}, so a bare number gains a unit. */
+    /**
+     * honey-style writes {@code `${breakpointPx}px`}, so a bare number gains a unit.
+     */
     public @NotNull String cssValue() {
         return rawValue.chars().allMatch(c -> Character.isDigit(c) || c == '.')
                 ? rawValue + "px"

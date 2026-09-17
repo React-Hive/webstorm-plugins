@@ -45,7 +45,14 @@ final class HoneyThemeIndexer {
     private static final String BREAKPOINTS_ROOT = "breakpoints";
     private static final List<String> EXTENSIONS = List.of("ts", "tsx", "js", "mjs");
     private static final int MAX_FILES = 60;
-    private static final int MAX_DEPTH = 6;
+    /**
+     * A honey color path is exactly {@code group.name}: {@code HoneyColorKey} is
+     * {@code `${ColorType}.${keyof HoneyColors[ColorType]}`}, and {@code resolveColor} reads only the
+     * first two parts of the split. Anything deeper, such as the deprecated theme's
+     * {@code button.accent.filled.color}, resolves to undefined and must not be offered.
+     */
+    private static final int GROUP_DEPTH = 0;
+    private static final int COLOR_DEPTH = 1;
     private static final int MAX_REFERENCE_HOPS = 4;
 
     private HoneyThemeIndexer() {
@@ -69,6 +76,7 @@ final class HoneyThemeIndexer {
         List<String> sources = new ArrayList<>();
         List<PsiFile> scanned = new ArrayList<>();
         Map<String, HoneyBreakpoint> breakpoints = new LinkedHashMap<>();
+        Map<String, String> customColors = settings.getCustomColorMap();
 
         for (VirtualFile file : files) {
             PsiFile psiFile = psiManager.findFile(file);
@@ -77,7 +85,7 @@ final class HoneyThemeIndexer {
             }
             scanned.add(psiFile);
             int before = entries.size();
-            collect(psiFile, presentableName(project, file), file, entries, breakpoints);
+            collect(psiFile, new Source(presentableName(project, file), file, customColors), entries, breakpoints);
             if (entries.size() > before) {
                 sources.add(presentableName(project, file));
             }
@@ -191,8 +199,7 @@ final class HoneyThemeIndexer {
     // --- parsing ---------------------------------------------------------------------------
 
     private static void collect(PsiFile file,
-                                String sourceName,
-                                VirtualFile sourceFile,
+                                Source source,
                                 List<HoneyColorEntry> out,
                                 Map<String, HoneyBreakpoint> breakpointsOut) {
         for (JSObjectLiteralExpression object : PsiTreeUtil.findChildrenOfType(file, JSObjectLiteralExpression.class)) {
@@ -201,7 +208,7 @@ final class HoneyThemeIndexer {
                 continue;
             }
             if (PALETTE_ROOTS.contains(rootName)) {
-                flatten(object, "", rootName, sourceName, sourceFile, out, 0);
+                flatten(object, "", rootName, source, out, 0);
             } else if (BREAKPOINTS_ROOT.equals(rootName)) {
                 for (JSProperty property : object.getProperties()) {
                     String name = property.getName();
@@ -217,7 +224,7 @@ final class HoneyThemeIndexer {
 
     /**
      * @return the palette name if {@code object} is the value of a {@code colors}-like variable or
-     *         property, otherwise {@code null}
+     * property, otherwise {@code null}
      */
     private static @Nullable String declaredName(JSObjectLiteralExpression object) {
         PsiElement parent = object.getParent();
@@ -230,21 +237,25 @@ final class HoneyThemeIndexer {
         return null;
     }
 
+    /**
+     * Only a {@code colors} property of a theme object counts. portalui's deprecated palettes are
+     * standalone {@code const colors = ...} variables reached through {@code theme.mg}, so their
+     * paths never resolve in a honey position and would otherwise pollute completion.
+     */
     private static @Nullable String paletteRootName(JSObjectLiteralExpression object) {
-        String name = declaredName(object);
+        if (!(object.getParent() instanceof JSProperty property)) {
+            return null;
+        }
+        String name = property.getName();
         return name != null && PALETTE_ROOTS.contains(name) ? name : null;
     }
 
     private static void flatten(JSObjectLiteralExpression object,
                                 String prefix,
                                 String rootName,
-                                String sourceName,
-                                VirtualFile sourceFile,
+                                Source source,
                                 List<HoneyColorEntry> out,
                                 int depth) {
-        if (depth > MAX_DEPTH) {
-            return;
-        }
         for (JSProperty property : object.getProperties()) {
             String name = property.getName();
             if (name == null || name.isEmpty()) {
@@ -253,16 +264,21 @@ final class HoneyThemeIndexer {
             String path = prefix.isEmpty() ? name : prefix + "." + name;
             JSExpression value = property.getValue();
             if (value instanceof JSObjectLiteralExpression nested) {
-                flatten(nested, path, rootName, sourceName, sourceFile, out, depth + 1);
+                if (depth == GROUP_DEPTH) {
+                    flatten(nested, path, rootName, source, out, depth + 1);
+                }
+                continue;
+            }
+            if (depth != COLOR_DEPTH) {
                 continue;
             }
             String raw = resolveStringValue(value, 0);
             if (raw == null) {
                 continue;
             }
-            Color color = CssColorParser.parse(raw);
+            Color color = CssColorParser.parse(raw, source.customColors());
             if (color != null) {
-                out.add(new HoneyColorEntry(path, rootName, color, raw, sourceName, sourceFile));
+                out.add(new HoneyColorEntry(path, rootName, color, raw, source.name(), source.file()));
             }
         }
     }
@@ -383,6 +399,12 @@ final class HoneyThemeIndexer {
             }
         }
         return null;
+    }
+
+    /**
+     * Bundles what every parsed value needs, so the recursion does not grow another parameter.
+     */
+    private record Source(String name, VirtualFile file, Map<String, String> customColors) {
     }
 
     private record ScoredFile(VirtualFile file, int score) {

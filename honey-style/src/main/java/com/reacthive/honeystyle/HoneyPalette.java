@@ -23,7 +23,9 @@ public final class HoneyPalette {
     private final Map<String, HoneyColorEntry> byQualifiedPath;
     private final List<String> sourceFiles;
 
-    /** @param entries in priority order - the first entry for a given path wins. */
+    /**
+     * @param entries in priority order - the first entry for a given path wins.
+     */
     public HoneyPalette(List<HoneyColorEntry> entries, List<String> sourceFiles) {
         Map<String, HoneyColorEntry> paths = new LinkedHashMap<>();
         Map<String, HoneyColorEntry> qualified = new LinkedHashMap<>();
@@ -107,7 +109,9 @@ public final class HoneyPalette {
         return best;
     }
 
-    /** "Redmean" approximation - cheap, and much closer to human perception than plain RGB distance. */
+    /**
+     * "Redmean" approximation - cheap, and much closer to human perception than plain RGB distance.
+     */
     private static double distance(Color a, Color b) {
         double rMean = (a.getRed() + b.getRed()) / 2.0;
         double dr = a.getRed() - b.getRed();

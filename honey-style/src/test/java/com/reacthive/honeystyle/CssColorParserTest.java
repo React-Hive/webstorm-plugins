@@ -3,6 +3,7 @@ package com.reacthive.honeystyle;
 import org.junit.Test;
 
 import java.awt.Color;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -40,6 +41,31 @@ public class CssColorParserTest {
         assertEquals(new Color(0, 0, 0), CssColorParser.parse("black"));
         assertEquals(new Color(255, 255, 255), CssColorParser.parse("  WHITE "));
         assertEquals(0, CssColorParser.parse("transparent").getAlpha());
+    }
+
+    @Test
+    public void knowsEveryStandardCssName() {
+        // royalblue is the one that made WebStorm's own swatch look like a duplicate.
+        assertEquals(new Color(0x41, 0x69, 0xE1), CssColorParser.parse("royalblue"));
+        assertEquals(new Color(0x66, 0x33, 0x99), CssColorParser.parse("rebeccapurple"));
+        assertEquals(new Color(0xFF, 0xE4, 0xE1), CssColorParser.parse("MistyRose"));
+        assertEquals(new Color(0x2F, 0x4F, 0x4F), CssColorParser.parse("darkslategray"));
+    }
+
+    @Test
+    public void customNamesExtendAndOverrideTheStandardOnes() {
+        Map<String, String> custom = Map.of("brand", "#318BFA", "white", "#F5F6F7");
+        assertEquals(new Color(0x31, 0x8B, 0xFA), CssColorParser.parse("brand", custom));
+        assertEquals(new Color(0xF5, 0xF6, 0xF7), CssColorParser.parse("white", custom));
+        // Unaffected names still resolve normally, and customs do not leak into the no-arg form.
+        assertEquals(new Color(0x41, 0x69, 0xE1), CssColorParser.parse("royalblue", custom));
+        assertEquals(new Color(0xFF, 0xFF, 0xFF), CssColorParser.parse("white"));
+    }
+
+    @Test
+    public void aCustomNameCanPointAtAnyCssColor() {
+        assertEquals(new Color(1, 2, 3), CssColorParser.parse("brand", Map.of("brand", "rgb(1, 2, 3)")));
+        assertNull(CssColorParser.parse("brand", Map.of("brand", "not-a-color")));
     }
 
     @Test

@@ -64,13 +64,17 @@ public final class HoneyAtRuleCompletionContributor extends CompletionContributo
         }
     }
 
-    /** @return the partial at-rule name typed after {@code @}, or null if the caret is elsewhere */
+    /**
+     * @return the partial at-rule name typed after {@code @}, or null if the caret is elsewhere
+     */
     static @Nullable String atRuleNamePrefix(String before) {
         Matcher matcher = AT_RULE_PREFIX.matcher(before);
         return matcher.find() ? matcher.group(1) : null;
     }
 
-    /** @return {rule name, text typed inside the parens}, or null when not inside an at-rule's parens */
+    /**
+     * @return {rule name, text typed inside the parens}, or null when not inside an at-rule's parens
+     */
     static String @Nullable [] ruleParams(String before) {
         Matcher matcher = RULE_PARAMS.matcher(before);
         return matcher.find() ? new String[]{matcher.group(1), matcher.group(2)} : null;
@@ -119,7 +123,9 @@ public final class HoneyAtRuleCompletionContributor extends CompletionContributo
         }
     }
 
-    /** {@code @honey-media} takes several space-separated tokens; complete the one being typed. */
+    /**
+     * {@code @honey-media} takes several space-separated tokens; complete the one being typed.
+     */
     static String currentToken(String typedParams) {
         int lastSpace = typedParams.lastIndexOf(' ');
         return lastSpace < 0 ? typedParams : typedParams.substring(lastSpace + 1);

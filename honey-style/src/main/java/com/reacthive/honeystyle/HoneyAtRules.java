@@ -73,7 +73,9 @@ public final class HoneyAtRules {
         return property + ": " + breakpoint.cssValue();
     }
 
-    /** Splits {@code sm:up} into its breakpoint key and direction. */
+    /**
+     * Splits {@code sm:up} into its breakpoint key and direction.
+     */
     public static String @NotNull [] splitBreakpointToken(@NotNull String token) {
         int colon = token.indexOf(':');
         return colon < 0
